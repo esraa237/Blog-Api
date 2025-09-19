@@ -1,168 +1,139 @@
 
----
+# Express Blog API
 
-# 🛡️ Blog API 
-
-This  extends your blog API by adding full user authentication, role-based authorization, secure password handling, request validation, and enhanced Mongoose features.
+A RESTful Blog API built with **Express.js** and **MongoDB**, featuring user authentication, role-based authorization, and full CRUD operations for posts, including search functionality. Swagger is used for API documentation.
 
 ---
 
-## 📁 Project Structure
+## Features
+
+- **User Authentication**
+
+  - Signup and login endpoints
+  - JWT-based authentication
+  - Password hashing and validation
+- **Role-Based Authorization**
+
+  - Admin and user roles
+  - Only admins can manage other users
+  - Post ownership validation
+- **Posts**
+
+  - Create, read, update, and delete posts
+  - Search posts by title or content
+  - Pagination support
+  - Tags filtering
+  - Comments with author population
+- **Error Handling**
+
+  - Centralized error handling using `AppError`
+  - Consistent API error responses
+- **API Documentation**
+
+  - Swagger UI integration
+  - Endpoint documentation and examples
+
+---
+
+## Project Structure
 
 ```
-blog-api/
-├── server.js
-├── models/
-│   ├── User.js
-│   └── Post.js
-├── routes/
-│   ├── userRoutes.js
-│   ├── postRoutes.js
-│   └── authRoutes.js
+project-root/
+├── controllers/
+│   ├── authController.js
+│   ├── postController.js
+│   └── userController.js
 ├── middleware/
-│   ├── auth.js            // JWT verification & role checks
-│   └── validation.js      // Joi validators
-└── controllers/
-    └── authController.js
+│   ├── auth.js
+│   └── validation.js
+├── models/
+│   ├── Post.js
+│   └── User.js
+├── routes/
+│   ├── authRoutes.js
+│   ├── postsRoutes.js
+│   └── usersRoutes.js
+├── utils/
+│   └── AppError.js
+├── node_modules/
+├── .env
+├── .gitignore
+├── launch.json
+├── package-lock.json
+├── package.json
+├── readme.md
+└── server.js
+```
+
+## Setup Instructions
+
+1. Clone the repository:
+
+```bash
+git clone <repository_url>
+cd <repository_folder>
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Create a `.env` file with the following variables:
+
+```
+PORT=5000
+MONGODB_URI=<your_mongodb_connection_string>
+JWT_SECRET=<your_jwt_secret>
+```
+
+4. Start the server:
+
+```bash
+npm run dev   # if using nodemon
+# or
+npm start     # for normal start
+```
+
+5. Open Swagger UI for API documentation:
+
+```
+http://localhost:5000/api-docs
 ```
 
 ---
 
-## 🚀 Setup
+## API Endpoints
 
-1. Clone your project or create a new folder.
-2. Initialize your project:
+### Users
 
-   ```bash
-   npm init -y
-   npm install express mongoose morgan bcrypt jsonwebtoken joi dotenv
-   ```
-3. Create a `.env` file:
+* `POST /api/auth/signup` - Register a new user
+* `POST /api/auth/login` - Login with email & password
+* `GET /api/users` - Get all users (Admin only)
+* `GET /api/users/:id` - Get user by ID (Admin only)
+* `PUT /api/users/:id` - Update user (Admin only)
+* `DELETE /api/users/:id` - Delete user (Admin only)
 
-   ```
-   MONGODB_URI=your_mongodb_connection
-   JWT_SECRET=yourSecretKey
-   ```
+### Posts
 
----
-
-## ✅ Features
-
-### 1. **User Authentication**
-
-- **User model** stores name, email, hashed password, and role (user/admin).
-- **Register Route:**`POST /api/auth/register`→ Validates input, hashes password, stores user.
-- **Login Route:**`POST /api/auth/login`→ Validates credentials and returns a signed JWT.
-- **JWT Middleware:**
-  Validates JWT tokens and attaches user data to requests.
+* `GET /api/posts` - Get all posts (with pagination, author, and tags filtering)
+* `POST /api/posts` - Create a post
+* `GET /api/posts/:id` - Get post by ID
+* `PUT /api/posts/:id` - Update post (Owner/Admin only)
+* `DELETE /api/posts/:id` - Delete post (Owner/Admin only)
+* `POST /api/posts/search` - Search posts by keyword
+* `POST /api/posts/:id/comments` - Add a comment to a post
 
 ---
 
-### 2. **Request Validation with Joi**
+## Dependencies
 
-Middleware validators created for:
-
-- User Registration
-- User Login
-- Post Creation & Updating
-
-```js
-// Example Joi validator
-const Joi = require("joi");
-
-const registerSchema = Joi.object({
-  name: Joi.string().required(),
-  email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
-  role: Joi.string().valid("user", "admin").optional()
-});
-```
-
----
-
-### 3. **Role-Based Authorization**
-
-- `role` field in user schema: `"user"` or `"admin"`
-- Middleware verifies if user is:
-  - The **author** of a post **OR**
-  - An **admin**
-- Admin-only routes are protected by role-checking logic
-
----
-
-### 4. **Password Security**
-
-- Uses **bcrypt** to hash passwords before storing.
-- Password complexity rules enforced using Joi.
-- Passwords are excluded from query results using `select: false`.
-
----
-
-### 5. **Mongoose Enhancements**
-
-#### ✅ Data Modeling Features:
-
-- **Virtual Property:**Combines `firstName + lastName → fullName` (if split into parts)
-- **Pre-save Middleware:**Hashes passwords using `pre("save")`
-- **Populate:**Automatically fetch user data in post queries using `.populate("author", "name email")`
-- **Custom Instance Method Example:**
-
-  ```js
-  userSchema.methods.comparePassword = function (password) {
-    return bcrypt.compare(password, this.password);
-  };
-  ```
-
----
-
-### 6. **Testing Authentication**
-
-- Protected route example:
-
-  ```js
-  router.get("/profile", verifyToken, (req, res) => {
-    res.json(req.user);
-  });
-  ```
-- Use **Postman** to:
-
-  - Register/Login a user
-  - Store token
-  - Add `Authorization: <your_jwt>` header for protected routes
-
----
-
-## 🔍 Example Routes
-
-| Route                       | Method | Description                | Access    |
-| --------------------------- | ------ | -------------------------- | --------- |
-| `/api/auth/register`      | POST   | Register a new user        | Public    |
-| `/api/auth/login`         | POST   | Login user, return JWT     | Public    |
-| `/api/posts`              | GET    | List all posts             | Public    |
-| `/api/posts`              | POST   | Create new post            | Auth Only |
-| `/api/posts/:id`          | PUT    | Update post (author/admin) | Protected |
-| `/api/posts/:id`          | DELETE | Delete post (author/admin) | Protected |
-| `/api/posts/:id/comments` | POST   | Add a comment to a post    | Auth Only |
-
----
-
-## 🔧 Tips & Resources
-
-- [JWT Auth in Express](https://jwt.io/introduction)
-- [Bcrypt Password Hashing](https://www.npmjs.com/package/bcrypt)
-- [Joi Validation](https://joi.dev/api/)
-- [Mongoose Populate](https://mongoosejs.com/docs/populate.html)
-- Use `.env` to protect sensitive data
-
----
-
-## 🧪 Testing Checklist
-
-- [X] Register & login flow
-- [X] JWT stored and reused in headers
-- [X] Unauthorized requests are blocked
-- [X] Only post author or admin can update/delete
-- [X] Post creation/update uses validation
-- [X] Passwords are hashed and never returned
-
----
+* express
+* mongoose
+* jsonwebtoken
+* bcryptjs
+* dotenv
+* swagger-jsdoc
+* swagger-ui-express
+* http-status-codes (optional)
